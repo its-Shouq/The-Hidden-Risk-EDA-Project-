@@ -1,0 +1,290 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--line:#284357;--text:#edf5f9;--muted:#91aabb;--blue:#72b8db;--amber:#f1b75a;--red:#f06d6d}
+*{box-sizing:border-box}body{margin:0;background:transparent;color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif}
+.lab-card{border-radius:18px;border:1px solid var(--line);background:linear-gradient(145deg,#10283b,#0a1c2b);padding:14px 15px 13px}
+.header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+.heading{font-weight:750;letter-spacing:.1px;font-size:18px}.eyebrow{color:var(--amber);font-weight:700;letter-spacing:1.35px;text-transform:uppercase;font-size:10px}
+.pill{padding:6px 9px;font-size:11px;border-radius:999px;background:#0a1a27;color:#a9c8da;border:1px solid #2b475b}
+.setup-grid{display:grid;grid-template-columns:1fr 1.5fr .85fr .75fr;gap:10px;margin-bottom:10px}
+.setup-field{min-width:0}.setup-field label{display:block;color:#a5c1d2;font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin:0 0 5px}
+.setup-field select{width:100%;height:38px;min-width:0;border-radius:9px;padding:0 9px;border:1px solid #375569;background:#091b2a;color:var(--text);font:600 12px Inter,Segoe UI,Arial,sans-serif;cursor:pointer}
+.setup-field select:focus-visible{outline:2px solid var(--amber);outline-offset:1px}
+.scene{position:relative;border:1px solid #2d4c61;border-radius:15px;overflow:hidden;background:#0b1f31}
+canvas{display:block;width:100%;height:292px}
+#hud{position:absolute;top:10px;left:10px;max-width:75%;padding:7px 11px;border:1px solid #28475a;border-radius:9px;background:rgba(5,20,31,.75);font-size:12px;font-weight:700}
+#verdict{position:absolute;top:10px;right:10px;display:none;font-size:12px;font-weight:750;border-radius:9px;padding:7px 10px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+button{cursor:pointer;font:650 12px Inter,Segoe UI,Arial,sans-serif;transition:transform .12s,border .12s}
+.action{min-height:40px;border-radius:10px;border:1px solid #35536a;background:#0b2132;color:#e8f3f8}
+.action.main{background:var(--amber);color:#1e2831;border-color:var(--amber)}
+.action:hover{transform:translateY(-1px);border-color:var(--amber)}button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.status{color:#b3cddc;font-size:12px;min-height:31px;margin:8px 2px 6px;line-height:1.45}.status b{color:var(--amber)}
+.hmap-title{display:flex;justify-content:space-between;align-items:flex-end;gap:8px;margin:12px 0 5px;flex-wrap:wrap}
+.hmap-title strong{font-weight:750;font-size:15px}.hmap-title span{color:#90aabd;font-size:10px}
+.heatmap{display:grid;grid-template-columns:120px repeat(3,minmax(0,1fr));gap:5px;align-items:stretch}
+.hm-head{text-align:center;color:#9dc2d8;font-size:10px;font-weight:700;letter-spacing:.6px;align-self:center;padding:5px}
+.hm-label{display:flex;align-items:center;justify-content:flex-end;padding-right:10px;color:#b4cedd;font-size:11px;font-weight:650}
+.hm-cell{padding:7px 4px 6px;border-radius:9px;border:2px solid transparent;font-size:12px;font-weight:800;min-height:37px;color:#101e2b;text-align:center}
+.hm-cell span{font-size:9px;opacity:.8;font-weight:600;margin-left:5px}.hm-cell.active{border-color:#fff;box-shadow:0 0 0 1px rgba(241,183,90,.4)}
+ .hm-cell:disabled{opacity:1;background:#1b3040!important;color:#a2b8c7;cursor:not-allowed;border:1px dashed #345469;font-size:11px}
+.hm-cell:disabled:hover{transform:none;filter:none}.hm-cell:not(:disabled):hover{filter:brightness(1.12);transform:translateY(-1px)}
+.hm-foot{margin-top:7px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;color:#8fabbc;font-size:10px}
+.hm-foot b{color:#c0dbe9;font-weight:700}
+#chain{display:none}
+@media(max-width:700px){.setup-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.heatmap{grid-template-columns:82px repeat(3,minmax(0,1fr));gap:3px}.hm-label{font-size:10px}.hm-cell{font-size:10px;min-height:35px}canvas{height:275px}}
+</style></head><body>
+<div class="lab-card">
+ <div class="header"><div><div class="eyebrow">03 / INTERACTIVE INCIDENT LAB</div><div class="heading">Test a wildlife strike scenario</div></div><div class="pill">FAA data · illustrative animation</div></div>
+ <div class="setup-grid">
+  <div class="setup-field"><label for="phaseSel">Flight phase</label><select id="phaseSel"></select></div>
+  <div class="setup-field"><label for="speciesSel">Wildlife species</label><select id="speciesSel"></select></div>
+  <div class="setup-field"><label for="sizeSel">Animal size</label><select id="sizeSel"></select></div>
+  <div class="setup-field"><label for="numberSel">Animals involved</label><select id="numberSel"></select></div>
+ </div>
+ <div class="scene"><canvas id="cv"></canvas><div id="hud"></div><div id="verdict"></div></div>
+ <div class="actions"><button class="action main" id="one">▶ Run collision</button><button class="action" id="reset">↻ Reset</button></div>
+ <div id="status" class="status"></div>
+ <div class="hmap-title"><strong>Explore the damage-rate heatmap</strong><span>Click any cell to load that scenario</span></div>
+ <div class="heatmap" id="heatmap"></div>
+ <div class="hm-foot"><span>Heatmap: all reports in the selected Single/Multiple group · N/A means no compatible identified species.</span><span>Click a cell to select a matching species.</span></div>
+ <ol id="chain" aria-hidden="true"></ol><div id="sev" hidden></div><div id="sevNote" hidden></div><div id="zones" hidden></div>
+</div>
+<script>
+const D=__DATA__, $=id=>document.getElementById(id), cv=$('cv'), c=cv.getContext('2d');
+const IC={'Songbirds':'🐤','Swifts & swallows':'🐦','Doves & pigeons':'🕊️','Gulls & shorebirds':'🏖️','Waterfowl':'🦆','Waders':'🦩','Raptors & owls':'🦅','Vultures':'🪶','Bats':'🦇','Land mammals':'🦌','Reptiles':'🐢'};
+const CF={'Songbirds':{k:'bird',s:.6,c:'#c9a27a',sp:1,t:'fan'},'Swifts & swallows':{k:'bird',s:.6,c:'#3f6a96',sp:1.4,t:'fork'},
+'Doves & pigeons':{k:'bird',s:.85,c:'#b9a89a',sp:1.1,t:'fan'},'Gulls & shorebirds':{k:'bird',s:1,c:'#e8edf0',w:'#8fa3b3',sp:1.7,t:'short',b:'#f1b75a'},
+'Waterfowl':{k:'bird',s:1.2,c:'#7a6248',sp:1.3,t:'short',nk:1,h:'#1f7a52',b:'#e8b64c'},'Waders':{k:'bird',s:1.3,c:'#a9bccb',sp:1.7,t:'short',nk:1.7,lg:1,b:'#e8b64c'},
+'Raptors & owls':{k:'bird',s:1.3,c:'#8a5a34',w:'#5e3d22',sp:2,t:'fan',b:'#f1b75a'},'Vultures':{k:'bird',s:1.7,c:'#2a2a30',sp:2.1,t:'fan',h:'#c0584a',b:'#ddd'},
+'Bats':{k:'bat',s:.8},'Land mammals':{k:'deer',s:1.5},'Reptiles':{k:'turtle',s:1.2}};
+const GR=['Taxi','Take-off Run','Landing Roll'];
+const PC={'Taxi':{g:1,p:0,gr:1,sp:.6},'Take-off Run':{g:1,p:0,gr:1,sp:3},'Departure':{y:.66,p:9,gr:1,sp:3.5},'Climb':{y:.5,p:14,gr:0,sp:4},'En Route':{y:.3,p:0,gr:0,sp:5},'Descent':{y:.44,p:-5,gr:0,sp:4},'Approach':{y:.6,p:-3,gr:1,sp:3,fl:1},'Landing Roll':{g:1,p:0,gr:1,sp:2.2,sb:1}};
+const Z={nose:'Nose / radome',windshield:'Windshield',engine:'Engine',wing:'Wing leading edge',gear:'Landing gear & tires',fuselage:'Fuselage'};
+const WG={ground:{gear:35,engine:25,fuselage:15,nose:15,wing:10},Departure:{engine:32,wing:24,nose:20,windshield:16,gear:8},Climb:{engine:32,wing:24,nose:20,windshield:16,gear:8},
+Approach:{engine:26,wing:22,nose:20,windshield:14,gear:18},Descent:{engine:28,wing:24,nose:22,windshield:18,fuselage:8},'En Route':{windshield:34,nose:30,engine:20,wing:16}};
+const AL={nose:[124,0],windshield:[104,-9],engine:[36,24],wing:[-4,12],gear:[40,40],fuselage:[-40,-2]};
+const LC=['#8ea5b6','#f1b75a','#f08a4b','#f06d6d'];
+
+
+let species=D.defaultSpecies, ph='Approach', size='Small', multi=false, T=0, sim=null, mark=null, parts=[], tot=0, dm=0, ac='jet', post={};
+const sp=()=>species, G=()=>D.speciesGroup[species]||'Songbirds';
+const grp=()=>CF[G()]||CF.Songbirds, isG=()=>['deer','turtle'].includes(grp().k);
+const strike=()=>multi?'Multiple':'Single';
+const key=(p=ph,s=size,n=strike(),animal=species)=>`${animal}|${p}|${s}|${n}`;
+const record=(p=ph,s=size,n=strike(),animal=species)=>D.cells[key(p,s,n,animal)]||[0,0];
+const cnt=(p=ph)=>record(p)[0], damaged=(p=ph)=>record(p)[1];
+const rate=(p=ph)=>cnt(p)>0?100*damaged(p)/cnt(p):0;
+const MIN_SCENARIO_REPORTS=1;
+const allowed=()=>isG()?D.groundPhases:D.phases;
+const blocked=()=>cnt()<MIN_SCENARIO_REPORTS || !allowed().includes(ph);
+const wts=()=>isG()?(G()==='Reptiles'?{gear:100}:{gear:45,wing:25,fuselage:15,engine:15}):{...WG[GR.includes(ph)?'ground':ph]};
+function safeOpt(v){return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function setOptions(id,values,selected,label,changed){
+  const el=$(id);el.innerHTML=values.map(v=>`<option value="${safeOpt(v)}">${safeOpt(label(v))}</option>`).join('');
+  el.value=selected;el.onchange=e=>changed(e.target.value);
+}
+function clearScenario(){sim=null;mark=null;post={};parts=[];$('chain').innerHTML='';$('verdict').style.display='none'}
+// Scenario-first controls: only present up to 12 relevant species with
+// actual observations for the chosen flight phase, animal size and number.
+const cellKey=(p=ph,s=size,n=strike())=>`${p}|${s}|${n}`;
+const choices=(p=ph,s=size,n=strike())=>D.optionsByCell[cellKey(p,s,n)]||[];
+function selectValidSpecies(){
+  let opts=choices();
+  if(!opts.length){
+    // Find a nearby cell that can be explored; never leave the user stuck at 0 records.
+    const tries=[];
+    for(const q of D.phases)tries.push([q,size,strike()]);
+    for(const sz of D.sizes)for(const q of D.phases)tries.push([q,sz,strike()]);
+    for(const q of D.groups)for(const sz of D.sizes)for(const stage of D.phases)tries.push([stage,sz,q]);
+    const found=tries.find(([stage,sz,number])=>choices(stage,sz,number).length);
+    if(found){ph=found[0];size=found[1];multi=found[2]==='Multiple';opts=choices();}
+  }
+  if(!opts.includes(species))species=opts[0]||'';
+}
+function setSpecies(value){
+  if(!choices().includes(value))return;
+  species=value;clearScenario();ui();
+}
+function setSize(value){size=value;selectValidSpecies();clearScenario();ui()}
+function setPhase(value){if(!allowed().includes(value))return;ph=value;selectValidSpecies();clearScenario();ui()}
+function setNumber(value){multi=value==='Multiple';selectValidSpecies();clearScenario();ui()}
+function pickCell(phase,chosenSize){
+  const sg=strike(), opts=choices(phase,chosenSize,sg);
+  if(!opts.length)return;
+  ph=phase;size=chosenSize;
+  // Auto-pick the most commonly reported compatible species in this cell.
+  species=opts[0];
+  clearScenario();ui();
+  $('phaseSel').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function heatUI(){
+ const el=$('heatmap');
+ let out='<div class="hm-head"></div>'+D.sizes.map(s=>`<div class="hm-head">${safeOpt(s.toUpperCase())}</div>`).join('');
+ for(const phase of D.phases){
+  out+=`<div class="hm-label">${safeOpt(phase)}</div>`;
+  for(const sz of D.sizes){
+   const info=D.heat[`${phase}|${sz}|${strike()}`]||[0,0];
+   const n=info[0], pct=n?info[1]/n*100:0;
+   const color=pct<10?'#70b0d5':pct<30?'#d4ac66':'#e7825b';
+   const active=phase===ph&&sz===size?'active':'';
+   const index=D.phases.indexOf(phase), si=D.sizes.indexOf(sz);
+   const runnable=choices(phase,sz,strike()).length>0;
+   const hint=runnable ? `${n} reports; ${info[1]} with damage. Click to select a matching species.` : 'No compatible, identified species for this combination';
+   out+=`<button class="hm-cell ${active}" type="button" data-phase="${index}" data-size="${si}" style="background:${runnable?color:'#142536'}" title="${hint}" ${runnable?'':'disabled'}>${runnable?pct.toFixed(1)+'%':'N/A'}${runnable?`<span>n=${n.toLocaleString()}</span>`:''}</button>`;
+  }
+ }
+ el.innerHTML=out;
+ el.querySelectorAll('button[data-phase]').forEach(b=>b.onclick=()=>pickCell(D.phases[Number(b.dataset.phase)],D.sizes[Number(b.dataset.size)]));
+}
+function ui(){
+ if(isG()&&!D.groundPhases.includes(ph))ph='Landing Roll';
+ setOptions('phaseSel',allowed(),ph,v=>v,setPhase);
+ setOptions('speciesSel',choices(),species,v=>v,setSpecies);
+ setOptions('sizeSel',D.sizes,size,v=>v,setSize);
+ setOptions('numberSel',D.groups,strike(),v=>v==='Single'?'Single':'Multiple',setNumber);
+ heatUI();
+ const n=cnt(), hits=damaged(), r=rate(), blockedNow=blocked();
+ $('one').disabled=blockedNow;
+ $('hud').textContent=`${species} · ${ph} · ${strike()}`;
+ $('status').innerHTML=blockedNow
+  ? 'No reports for this scenario. Choose another cell.'
+  : `FAA observed: <b>${hits} damaging</b> / <b>${n} reports</b> · <b>${r.toFixed(2)}%</b> damage rate${n<10?' · small sample':''}.`;
+}
+function sevUI(_){/* Display intentionally removed. Underlying visual effects still use species-level severity. */}
+function zoneUI(_){/* Display intentionally removed; impact locations remain illustrative. */}
+const pickW=w=>{let t=Object.values(w).reduce((a,b)=>a+b,0)*Math.random();for(const k in w){t-=w[k];if(t<=0)return k}return Object.keys(w)[0]};
+function pickLvl(){const arr=D.severity[species]||[1,0,0,0];const sum=arr.reduce((a,b)=>a+b,0);if(!sum)return 0;let r=Math.random()*sum;for(let i=0;i<arr.length;i++){r-=arr[i];if(r<=0)return i}return 0}
+const IC2=IC;
+$('reset').onclick=()=>{clearScenario();ui()};
+$('one').onclick=()=>{
+ if(blocked())return;
+ const didDamage=Math.random()*100<rate(); tot++; if(didDamage)dm++;
+ const zone=pickZone(), level=didDamage?pickLvl():-1, chain=chainOf(zone,level,didDamage);
+ sim={f:0,d:didDamage,z:zone,l:level,hit:false,chain,shown:0,end:Math.max(170,118+chain.length*52+80)};
+ mark=null;parts=[];$('chain').innerHTML='';$('verdict').style.display='none';
+ $('status').innerHTML=`Simulation running · FAA observed damage rate <b>${rate().toFixed(2)}%</b> from <b>${cnt()}</b> matching reports.`;
+};
+const md=(x,m)=>((x%m)+m)%m;
+function ell(x,y,rx,ry,col){c.fillStyle=col;c.beginPath();c.ellipse(x,y,rx,ry,0,0,6.3);c.fill()}
+function wing(o,sp,ty,a){c.save();c.globalAlpha=a;c.fillStyle=o.w||'#00000055';if(!o.w)c.fillStyle='rgba(0,0,0,.35)';c.beginPath();c.moveTo(-4,-1);c.quadraticCurveTo(0,ty*.5,12,ty);c.quadraticCurveTo(15,ty*.3,10,1);c.fill();c.restore()}
+function bird(o,t){const sp=22*o.sp,ty=-sp*Math.sin(t*.5);const col=o.c;
+ c.fillStyle=col;c.beginPath();if(o.t==='fork'){c.moveTo(10,0);c.lineTo(34,-9);c.lineTo(26,0);c.lineTo(34,9)}else if(o.t==='fan'){c.moveTo(10,-3);c.lineTo(32,-8);c.lineTo(32,8);c.lineTo(10,3)}else{c.moveTo(10,-3);c.lineTo(22,-4);c.lineTo(22,4);c.lineTo(10,3)}c.fill();
+ if(o.lg){c.strokeStyle='#e8b64c';c.lineWidth=1.5;c.beginPath();c.moveTo(8,3);c.lineTo(30,8);c.stroke()}
+ wing(o,sp,ty,.6);ell(0,0,16,7,col);const nl=(o.nk||0)*13;
+ if(nl){c.strokeStyle=o.h||col;c.lineWidth=4;c.beginPath();c.moveTo(-12,-2);c.lineTo(-16-nl,-3);c.stroke()}
+ ell(-16-nl,-3,5,4.4,o.h||col);c.fillStyle=o.b||'#d9a441';c.beginPath();c.moveTo(-20-nl,-4);c.lineTo(-29-nl,-1);c.lineTo(-20-nl,-1);c.fill();
+ c.fillStyle='#000';c.fillRect(-18-nl,-5,1.6,1.6);c.globalAlpha=1;
+ c.save();c.fillStyle=o.w||col;c.beginPath();c.moveTo(-4,-1);c.quadraticCurveTo(0,ty*.5,12,ty);c.quadraticCurveTo(15,ty*.3,10,1);c.fill();c.restore()}
+function bat(t){const ty=-26*Math.sin(t*.6);c.fillStyle='#2c2630';for(const sg of[-1,1]){c.beginPath();c.moveTo(0,0);c.lineTo(sg*26,ty);c.quadraticCurveTo(sg*18,ty*.3+8,sg*12,ty*.4+9);c.quadraticCurveTo(sg*7,ty*.2+11,0,8);c.fill()}
+ ell(0,3,5,8,'#1c1820');ell(0,-6,4,4,'#1c1820');c.fillRect(-4,-12,2,5);c.fillRect(2,-12,2,5)}
+function deer(t){const w=Math.sin(t*.35)*10;c.strokeStyle='#5b3a22';c.lineWidth=3.5;for(const[x,s]of[[-18,1],[-12,-1],[14,-1],[20,1]]){c.beginPath();c.moveTo(x,10);c.lineTo(x+w*s,32);c.stroke()}
+ ell(0,0,28,13,'#8a5a36');c.strokeStyle='#8a5a36';c.lineWidth=8;c.beginPath();c.moveTo(-22,-6);c.lineTo(-34,-24);c.stroke();ell(-38,-27,9,5,'#8a5a36');
+ c.strokeStyle='#d9c9a8';c.lineWidth=2;c.beginPath();c.moveTo(-36,-31);c.lineTo(-30,-48);c.moveTo(-33,-40);c.lineTo(-42,-46);c.moveTo(-32,-36);c.lineTo(-24,-42);c.stroke();ell(28,-6,4,6,'#f4efe6');ell(-44,-27,2,2,'#111')}
+function turtle(t){const w=Math.sin(t*.2)*3;c.fillStyle='#4a6a3a';c.beginPath();c.ellipse(0,0,20,12,0,Math.PI,0);c.fill();c.fillStyle='#6a8a4a';c.beginPath();c.ellipse(0,0,14,7,0,Math.PI,0);c.fill();
+ ell(-24,-2,6,4,'#7a8a52');ell(-12+w,2,4,3,'#7a8a52');ell(10-w,2,4,3,'#7a8a52')}
+function animal(x,y,t,sc,a,rot){const o=grp();c.save();c.translate(x,y);c.rotate(rot||0);c.scale(sc*o.s,sc*o.s);c.globalAlpha=a==null?1:a;
+ if(o.k==='bird')bird(o,t);else if(o.k==='bat')bat(t);else if(o.k==='deer')deer(t);else turtle(t);c.restore()}
+const AL2={engine:[96,-3],nose:[96,-3],windshield:[50,-12],wing:[10,-28],gear:[0,34],fuselage:[-40,0]};
+const ALc=()=>ac==='jet'?AL:AL2;
+const zl=z=>ac==='light'&&z==='engine'?'Propeller & engine':Z[z];
+function gearDraw(x,y0,L,r,main){c.strokeStyle='#33424d';c.lineWidth=3;c.beginPath();c.moveTo(x,y0);
+ if(main&&post.strut){c.lineTo(x+14*(post.g||1),y0+L*.7);c.stroke();ell(x+30,y0+L+r-3,r+1,3,'#111');c.strokeStyle='#f08a4b';c.beginPath();c.arc(x+14,y0+L*.7,3.5,0,6.3);c.stroke()}
+ else{c.lineTo(x,y0+L);c.stroke();if(main&&post.tire){ell(x,y0+L+r-3,r+2,r*.5,'#111');c.strokeStyle='#111';c.lineWidth=2;c.beginPath();c.moveTo(x+8,y0+L+r-4);c.lineTo(x+22,y0+L+r-8);c.stroke()}else ell(x,y0+L,r,r,'#111')}}
+function plane(gear,spin,fl,sb){c.fillStyle='#6ca9d4';c.beginPath();c.moveTo(-112,-12);c.lineTo(-136,-54);c.lineTo(-116,-54);c.lineTo(-82,-15);c.fill();
+ c.fillStyle='#cdd7de';c.beginPath();c.moveTo(-112,-4);c.lineTo(-138,-16);c.lineTo(-124,-2);c.fill();
+ c.fillStyle='#e9eff3';c.beginPath();c.moveTo(-130,-8);c.lineTo(-100,-17);c.lineTo(70,-19);c.quadraticCurveTo(120,-16,126,2);c.quadraticCurveTo(120,16,70,17);c.lineTo(-90,15);c.quadraticCurveTo(-118,11,-130,-8);c.fill();
+ c.fillStyle='#f1b75a';c.fillRect(-100,6,190,3);c.fillStyle='#244257';c.beginPath();c.moveTo(94,-14);c.lineTo(113,-7);c.lineTo(96,-5);c.fill();
+ c.fillStyle='#3a5568';for(let x=-70;x<86;x+=12)c.fillRect(x,-9,5,5);
+ c.fillStyle='#b8c5cf';c.beginPath();c.moveTo(-8,6);c.lineTo(-64,36);c.lineTo(-46,36);c.lineTo(32,9);c.fill();
+ if(fl){c.fillStyle='#8da0ad';c.save();c.translate(-50,36);c.rotate(.5);c.fillRect(-4,0,22,4);c.restore()}
+ if(sb){c.fillStyle='#8da0ad';c.save();c.translate(-30,26);c.rotate(-.9);c.fillRect(0,-3,22,3);c.restore()}
+ ell(20,25,22,10,'#aab6bf');ell(40,25,4,9,'#17242d');c.strokeStyle='#e8eef2';c.lineWidth=1.5;for(let i=0;i<4;i++){const a=spin+i*1.57;c.beginPath();c.moveTo(40,25);c.lineTo(40+Math.cos(a)*2,25+Math.sin(a)*8);c.stroke()}
+ if(gear>0){const L=26*gear;gearDraw(-8,14,L,8,false);gearDraw(40,14,L,8,true);c.strokeStyle='#33424d';c.lineWidth=3;c.beginPath();c.moveTo(94,12);c.lineTo(94,12+L);c.stroke();ell(94,12+L,6,6,'#111')}}
+function plane2(gear,spin){c.fillStyle='#e9eff3';c.beginPath();c.moveTo(-100,-4);c.lineTo(-118,-44);c.lineTo(-100,-44);c.lineTo(-80,-10);c.fill();c.fillStyle='#cdd7de';c.fillRect(-116,-6,34,4);
+ c.fillStyle='#e9eff3';c.beginPath();c.moveTo(-106,-8);c.lineTo(-80,-16);c.lineTo(40,-20);c.lineTo(84,-14);c.quadraticCurveTo(96,-4,92,8);c.lineTo(-80,12);c.quadraticCurveTo(-100,10,-106,-8);c.fill();
+ c.fillStyle='#6ca9d4';c.fillRect(-100,0,190,4);c.fillStyle='#244257';c.beginPath();c.moveTo(34,-19);c.lineTo(62,-15);c.lineTo(58,-4);c.lineTo(30,-4);c.fill();
+ c.fillStyle='#cdd7de';c.fillRect(-20,-32,74,6);c.strokeStyle='#8da0ad';c.lineWidth=2;c.beginPath();c.moveTo(10,-26);c.lineTo(22,8);c.stroke();ell(88,-3,10,11,'#b8c5cf');
+ if(!post.propbend){c.strokeStyle='#222';c.lineWidth=3;c.save();c.translate(96,-3);c.rotate(post.engineOut?1.2:spin);c.beginPath();c.moveTo(0,-20);c.lineTo(0,20);c.stroke();c.restore()}
+ gearDraw(60,8,26,7,false);gearDraw(0,8,26,7,true)}
+function world(z,P){const a=ALc()[z],p=P.p*Math.PI/180,ly=(z==='gear'&&ac==='jet')?14+26*P.gr:a[1];return[P.x+P.S*(a[0]*Math.cos(p)+ly*Math.sin(p)),P.y+P.S*(-a[0]*Math.sin(p)+ly*Math.cos(p))]}
+function dmgDraw(m){const a=ALc()[m.z],k=[.6,.75,1,1.5][m.l],o=grp();c.save();c.translate(a[0],a[1]);c.lineWidth=1.3;
+ if(m.z==='windshield'){ell(-2,0,10*k,6*k,'rgba(150,30,30,.5)');c.strokeStyle='rgba(255,255,255,.95)';for(let i=0;i<9;i++){const an=i*.7;c.beginPath();c.moveTo(0,0);c.lineTo(Math.cos(an)*18*k,Math.sin(an)*13*k);c.stroke()}for(const r of[6,12]){c.beginPath();c.ellipse(0,0,r*k,r*.75*k,0,0,6.3);c.stroke()}}
+ else if(m.z==='nose'){c.fillStyle='#262b31';c.beginPath();c.moveTo(2,-15*k);c.lineTo(9*k,-5);c.lineTo(4*k,1);c.lineTo(11*k,9*k);c.lineTo(-5,13*k);c.lineTo(-9,-6);c.fill();c.strokeStyle='#cdd7de';c.beginPath();c.moveTo(-6,-4);c.lineTo(4,3);c.lineTo(-2,10);c.stroke();if(m.l>=2){c.fillStyle='#cdd7de';c.fillRect(12+Math.sin(T*.2)*2,-12,5,3)}}
+ else if(m.z==='engine'&&ac==='jet'){const g=c.createLinearGradient(-90,0,0,0);g.addColorStop(0,'rgba(20,20,20,0)');g.addColorStop(1,'rgba(20,20,20,.55)');c.fillStyle=g;c.fillRect(-90*k-30,-7,90*k+30,14);
+  c.strokeStyle='#17242d';c.lineWidth=2;c.beginPath();c.moveTo(4,17);c.lineTo(8,24);c.lineTo(3,31);c.stroke();
+  if(post.stuck){ell(4,1,5,6.5,o.c||'#8a5a36');c.strokeStyle=o.c||'#8a5a36';c.lineWidth=1.5;for(let i=0;i<4;i++){c.beginPath();c.moveTo(4,1);c.lineTo(10+i*2,-6+i*4);c.stroke()}}
+  if(post.fire||post.stall){ell(-26,0,(14+Math.sin(T*.8)*5)*k,6*k,'rgba(255,120,40,.9)');ell(-22,0,8*k,3*k,'rgba(255,230,120,.95)')}}
+ else if(m.z==='engine'){c.fillStyle='#262b31';c.beginPath();c.arc(0,0,11,0,6.3);c.fill();c.strokeStyle='#d9d9d9';c.lineWidth=3;c.beginPath();c.moveTo(0,0);c.lineTo(-6,-20*k);c.moveTo(0,0);c.lineTo(4,22);c.stroke();if(post.fire)ell(-14,0,(10+Math.sin(T)*4)*k,5*k,'rgba(255,120,40,.9)')}
+ else if(m.z==='wing'){c.fillStyle='#2b3239';c.beginPath();c.moveTo(-8,-2);c.lineTo(6*k,6);c.lineTo(-4,10*k);c.fill();c.strokeStyle='#cdd7de';c.lineWidth=1.2;c.beginPath();c.moveTo(-6,2);c.lineTo(5,8);c.stroke()}
+ else if(m.z==='gear'){c.fillStyle='#111';for(let i=0;i<4;i++){c.save();c.rotate(i*1.6+T*.05);c.fillRect(8,-1,10*k,2.5);c.restore()}}
+ else{c.strokeStyle='#8b98a2';c.lineWidth=2;for(let i=0;i<3;i++){c.beginPath();c.moveTo(-14,-6+i*5);c.lineTo(14*k,-2+i*5);c.stroke()}if(m.l>=2){c.fillStyle='#1c242b';c.beginPath();c.moveTo(-8,-4);c.lineTo(10,-8);c.lineTo(6,6);c.lineTo(-6,8);c.fill()}}
+ c.globalAlpha=.4+.4*Math.sin(T*.3);c.strokeStyle='#f06d6d';c.lineWidth=1.6;c.beginPath();c.arc(0,0,22,0,6.3);c.stroke();c.restore()}
+function burst(x,y,d,l,col){for(let i=0,N=Math.round((d?26:12)*Math.min(2.2,grp().s));i<N;i++)parts.push({x,y,vx:(Math.random()-.8)*5,vy:(Math.random()-.5)*5,r:2+Math.random()*3,a:1,col:i%3?col:'#fff',ty:'f'});
+ if(d)for(let i=0;i<(8+l*6);i++)parts.push({x,y,vx:(Math.random()-.5)*4,vy:(Math.random()-.8)*4,r:1.5,a:1,col:'#ffd27a',ty:'s'})}
+const GRW={d:{gear:45,wing:25,fuselage:15,engine:15},t:{gear:100}};
+function pickZone(){return isG()?pickW(G()==='Reptiles'?GRW.t:GRW.d):pickW(wts())}
+const RS=['Damage logged; aircraft inspected before its next flight.','Minor repair and a short delay.','Substantial damage: major repair, aircraft out of service.','Aircraft destroyed or written off.'];
+function chainOf(z,l,d){const st=[],S=(t,f)=>st.push([t,f||'']),air=!GR.includes(ph),o=grp(),gnd=isG(),nm=G().toLowerCase(),jet=ac==='jet';
+ if(!d){S(`The ${gnd?'animal':'strike'} hits the <b>${zl(z)}</b>: no visible damage.`);S('Crew files a wildlife-strike report; runway is checked and cleared.');return st}
+ if(z==='engine'){if(jet){S(`${multi?'Several animals are':'The animal is'} <b>sucked into the engine</b>; remains lodge in the intake.`,'stuck');
+   if(l===0)S('Engine keeps running; blades are checked with a borescope before the next flight.');
+   if(l>=1)S('Fan blades bend: <b>compressor stall</b> — flames pop from the intake, vibration and temperature warnings.','stall,smoke');
+   if(l>=2)S(air?'Engine <b>shuts down</b> (flame-out); pilots fly on the remaining engine.':'<b>Take-off rejected</b>: engine shut down, hard braking.','engineOut'+(air?'':',stop'));
+   if(l>=2&&multi)S('A second engine also ingests birds: thrust loss on both engines is the worst case.','smoke');
+   if(l===3)S('Debris punches through the cowling and cuts fuel lines: <b>fire</b>.','leak,fire')}
+  else{S('The <b>propeller strikes</b> the animal; a blade bends and the engine shakes violently.','propbend');if(l>=1)S('Impact loads can damage the engine mount and firewall.','smoke');
+   if(l>=2)S(air?'Engine <b>loses power</b>: forced landing.':'Engine <b>loses power</b> and the aircraft stops on the runway.','engineOut'+(air?'':',stop'));if(l===3)S('The nose gear collapses and the nose digs in.','strut,sag,sparks,stop,fire')}}
+ else if(z==='windshield'){S('Impact on the <b>windshield</b>: glass cracks and blood smears the pilots’ view.');
+  S(l>=2?'Outer layers <b>shatter</b>: wind and debris enter the cockpit, pilots land immediately.':'Windshield is struck; the crew assesses the damage and visibility.',l>=2?'smoke':'')}
+ else if(z==='nose'){S('The <b>radome</b> (weather-radar nose cone) is crushed.');if(l>=2)S('Torn radome and damaged avionics behind it; crew declares an emergency.','smoke');else S('Extra drag and a radar replacement are needed.')}
+ else if(z==='wing'){S(gnd?'The animal hits the <b>wing</b> at runway speed: dent or hole in the skin.':'Hit on the <b>wing leading edge</b>: dent or hole in the skin.');
+  if(l>=1)S('Fuel or hydraulic fluid <b>leaks</b>; flaps or slats may be damaged.','leak');
+  if(l>=2)S(gnd?'The aircraft <b>veers off the runway</b>.':'A flap is buckled: higher landing speed and poor handling.',gnd?'veer,stop':'smoke');
+  if(l===3)S('Wing structure damaged beyond repair.','fire')}
+ else if(z==='gear'){S(gnd?`The ${nm.replace('land ','')} is hit by the <b>main landing gear</b>.`:'The animal hits the <b>landing gear</b> and its doors: dented doors.');
+  if(l>=1)S('A <b>tire bursts</b> or is cut; gear doors may be torn off.','tire');
+  if(l>=2){S('The gear <b>strut collapses</b>; the belly drags and sparks fly.','strut,sag,sparks');S('The aircraft <b>veers off the runway</b> (runway excursion).','veer,stop')}
+  if(l===3)S('Wing and fuselage are torn in the excursion.','fire')}
+ else{S(gnd?'The animal hits the <b>fuselage</b>: skin torn, frames bent.':'The strike dents the <b>fuselage</b> skin.');if(l>=2)S('Skin torn open: hydraulic lines and structure inspected, aircraft grounded.','smoke')}
+ S('<b>Result:</b> '+RS[l]+(air&&l>=2?' Emergency return or diversion.':''));return st}
+const WHY={'Land mammals':'Deer slip in through gaps or jump perimeter fences, graze on airfield grass, and are most active around dawn and dusk. A running deer covers about 40 ft per second, so pilots may have ~2 seconds. FAA guidance recommends 10–12 ft deer fencing.','Reptiles':'Turtles and snakes cross warm pavement and drainage ditches. They are low and slow, so most are a cleanup problem, rarely a damage problem.','Bats':'Bats hunt insects that gather around airfield lights at dusk and night. They are small and hard to see.','Gulls & shorebirds':'Open grass, standing water and nearby food sources draw them to airports; they rise in flocks as aircraft approach.','Waterfowl':'Geese graze on airfield grass and ducks use ponds; migrating flocks create seasonal peaks. They are heavy, so hits hurt.','Waders':'Herons, egrets and ibis use ponds and drainage ditches near runways.','Raptors & owls':'Hawks and owls hunt rodents in mowed airfield grass and ride thermals above it.','Vultures':'Vultures soar on thermals in large groups. They are among the heaviest birds struck.','Doves & pigeons':'Doves forage on seeds and gravel at the edge of runways and take off in fast, tight flocks.','Swifts & swallows':'They hunt insects low over fields and pavement, in dense flocks. Very light, so damage is rare.','Songbirds':'Grass and brush at the field edge attract flocks of small birds that flush upward as an aircraft passes.'};
+const PHW={'Taxi':'Already on the airport surface: the animal wandered into the movement area.','Take-off Run':'High speed on the runway; stopping takes distance and dusk or night crossings are hard to see.','Departure':'Just after liftoff, low altitude where most birds live, with engines at high thrust.','Climb':'The aircraft is climbing at high thrust: a wildlife strike can affect an engine or the airframe.','En Route':'High altitude: strikes are rare and usually involve large soaring or migrating birds.','Descent':'Descending through the altitudes where birds fly.','Approach':'Low and slow near the runway, with gear and flaps out and little room to manoeuvre.','Landing Roll':'Touchdown and rollout: an animal crossing the runway cannot be avoided in the last seconds.'};
+function whyUI(){const g=G(),m=D.months[g],mx=Math.max(...m,1),pk=m.indexOf(Math.max(...m)),MN='JFMAMJJASOND',MM=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+ $('why').innerHTML=`<p style="margin:0 0 8px">${WHY[g]}</p><p style="margin:0 0 8px"><b>At this stage:</b> ${PHW[ph]}</p><div class="lab" style="margin:8px 0 4px">When reports happen (from the data) · peak <b style="color:var(--amber)">${MM[pk]}</b></div><div style="display:flex;gap:3px;align-items:flex-end;height:46px">${m.map((x,i)=>`<div style="flex:1;text-align:center;font-size:9px"><div style="height:${Math.max(2,x/mx*30)}px;background:${i===pk?'#f1b75a':'#3f6e90'};border-radius:3px 3px 0 0"></div>${MN[i]}</div>`).join('')}</div><div class="note">Most reported: ${D.top[g].map(t=>t[0]+' ('+t[1].toLocaleString()+')').join(', ')}. Context text paraphrases FAA, Transport Canada and NTSB guidance and cases; it is not computed from the CSV.</div>`}
+let AC=null;function tone(f,d,v,ty){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type=ty||'sine';o.frequency.value=f;g.gain.value=v;g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+d);o.connect(g);g.connect(AC.destination);o.start();o.stop(AC.currentTime+d)}catch(e){}}
+function thud(d,l){tone(90,.25,.25);if(d){setTimeout(()=>tone(880,.12,.07,'square'),180);setTimeout(()=>tone(880,.12,.07,'square'),360);if(l>=2)setTimeout(()=>tone(660,.4,.07,'square'),540)}}
+function frame(){T++;const W=cv.clientWidth,H=cv.clientHeight,dp=devicePixelRatio||1;if(cv.width!==Math.round(W*dp)){cv.width=W*dp;cv.height=H*dp}
+ c.setTransform(dp,0,0,dp,0,0);const C=PC[ph],gY=H*.8,air=!C.g,v=post.v||0,S=Math.min(1.15,W/700)*(1+.12*v),sp=C.sp*(air?1:1-(post.s||0));
+ if(post.veer&&v<1)post.v=Math.min(1,v+.008);if(post.stop&&(post.s||0)<1)post.s=Math.min(1,(post.s||0)+.012);if(post.sag&&(post.g||0)<1)post.g=Math.min(1,(post.g||0)+.04);
+ const hi=ph==='En Route',sk=c.createLinearGradient(0,0,0,H);sk.addColorStop(0,hi?'#050d16':'#0a1a2a');sk.addColorStop(.75,hi?'#10283b':'#1a3a52');sk.addColorStop(1,'#1f4559');c.fillStyle=sk;c.fillRect(0,0,W,H);
+ for(let i=0;i<6;i++){const x=md(i*230-T*sp*(.25+i*.07),W+320)-160,y=H*(.12+i*.1)%(H*.6)+20;for(const[dx,rx]of[[0,70],[50,50],[-50,46]])ell(x+dx,y,rx,18,'rgba(255,255,255,.05)')}
+ c.fillStyle='#0f2a22';c.beginPath();c.moveTo(0,gY);for(let x=0;x<=W;x+=30)c.lineTo(x,gY-14-8*Math.sin((x+T*sp*.5)*.03)-6*Math.sin((x+T*sp*.5)*.011));c.lineTo(W,gY);c.fill();
+ c.fillStyle='#12301f';c.fillRect(0,gY,W,H-gY);c.fillStyle='#29343f';c.fillRect(0,gY,W,26);c.fillStyle='rgba(255,255,255,.45)';for(let x=-md(T*sp*(air?1.5:3),90);x<W;x+=90)c.fillRect(x,gY+12,44,3);
+ let tx=0,ty2=0;if(sim&&sim.hit&&sim.f<125){const a=(125-sim.f)/125*(sim.d?5:1.5);tx=(Math.random()-.5)*a;ty2=(Math.random()-.5)*a}c.save();c.translate(tx,ty2);
+ const px=W*.4,bob=Math.sin(T*.04)*2,hb=ac==='jet'?48:41;let py=air?H*C.y+bob:gY+30*v-hb*S+10*S*(post.g||0);
+ let pitch=C.p;if(ph==='Take-off Run'&&sim)pitch=0;if(mark&&mark.l>=2&&air)pitch+=mark.l===3?-12:-5;if(post.sag)pitch-=3*(post.g||0);const P={x:px,y:py,S,p:pitch,gr:C.gr};
+ const o=grp(),gnd=isG(),sc=1;let animals=[];const nA=multi?5:1,off=[[0,0],[34,-16],[40,18],[78,-6],[84,24]],gy=()=>gY-(o.k==='deer'?32:12)*o.s;
+ if(sim){const f=sim.f,tg=world(sim.z,P),E=100;for(let i=0;i<nA;i++){let x,y,a=1,r=0;const ox=multi?off[i][0]:0,oy=off[i][1];
+   if(f<E){const u=f/E;x=tg[0]+(W+100-tg[0])*(1-u)+ox*(1-u);y=gnd?gy():tg[1]+(-70*(1-u)*(1-u))+oy}
+   else{const q=f-E;x=tg[0]-q*(i?4:6)+ox*.3;y=(gnd?gy():tg[1]+oy)+(i?0:q*q*.04);r=i?0:q*.12;if(i&&!sim.d)y=tg[1]+oy-q*.4;a=Math.max(0,1-q/70)}
+   animals.push([x,y,a,r])}
+  if(!sim.hit&&f>=E){sim.hit=true;burst(tg[0],tg[1],sim.d,Math.max(0,sim.l),o.c||'#8a5a36');if(sim.d)mark={z:sim.z,l:sim.l,left:1500};
+   $('verdict').style.display='block';$('verdict').style.background=sim.d?'rgba(240,109,109,.92)':'rgba(81,210,140,.92)';$('verdict').style.color='#111';$('verdict').textContent=sim.d?'DAMAGE · '+D.levels[sim.l]:'NO DAMAGE';
+   zoneUI(sim.z);sevUI(sim.d?sim.l:null);thud(sim.d,sim.l);$('status').innerHTML=sim.d ? `✦ <b>Damage recorded</b> · illustrative impact: <b>${zl(sim.z)}</b> · observed damage rate <b>${rate().toFixed(2)}%</b>` : `✓ <b>No recorded damage</b> in this trial · observed damage rate <b>${rate().toFixed(2)}%</b>`}
+  if(sim.hit&&sim.shown<sim.chain.length&&sim.f>=112+sim.shown*52){const[t,fx]=sim.chain[sim.shown++],li=document.createElement('li');li.innerHTML=t;if(t.startsWith('<b>Result'))li.className='res';$('chain').appendChild(li);fx.split(',').filter(Boolean).forEach(q=>{post[q]=true;if(q==='stall')post.stallT=T})}
+  sim.f++;if(sim.f>sim.end){sim=null}}
+ else{const u=md(T*(gnd?1.6:2.4),W+300);if(gnd)animals.push([W+100-u,gY+64,1,0]);else for(let i=0;i<nA;i++)animals.push([W+100-u+off[i][0],(air?py-130*S:H*.2)+off[i][1]+Math.sin(T*.05)*10,1,0])}
+ const behind=gnd&&!sim;if(behind)animals.forEach(a=>animal(a[0],a[1],T,1,a[2],a[3]));
+ const spin=(mark&&mark.z==='engine'&&mark.l>=1)||post.engineOut?T*.04:T*.6;c.save();c.translate(px,py);c.rotate(-pitch*Math.PI/180);c.scale(S,S);(ac==='jet'?plane:plane2)(1,spin,C.fl,C.sb);if(mark){dmgDraw(mark);if(--mark.left<=0)mark=null}c.restore();
+ if(!behind)animals.forEach(a=>animal(a[0],a[1],T,1,a[2],a[3]));
+ if(mark){const w=world(mark.z,P);if((post.smoke||post.fire)&&T%2===0)parts.push({x:w[0],y:w[1],vx:-3-sp*.4,vy:-.4,r:5,a:.7,col:'#444',ty:'m'});
+  if(post.fire&&T%2===1)parts.push({x:w[0],y:w[1],vx:-2,vy:-1,r:4,a:.9,col:'#ff9a3c',ty:'m'});
+  if(post.leak&&T%3===0)parts.push({x:w[0],y:w[1],vx:-2.5,vy:.5,r:2.5,a:.8,col:'#9fd0ff',ty:'s'});
+  if(post.sparks){const g=world('gear',P);parts.push({x:g[0],y:g[1]+10,vx:-3-Math.random()*3,vy:-Math.random()*2,r:1.6,a:1,col:'#ffd27a',ty:'s'})}
+  if(post.stall&&T-post.stallT<40&&T%2===0){const g=world('engine',P);parts.push({x:g[0]+14,y:g[1]+2,vx:2+Math.random()*3,vy:(Math.random()-.5)*2,r:4,a:.9,col:'#ff8a3c',ty:'m'})}}
+ parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.ty==='f'){p.vy+=.12;p.vx*=.98}else if(p.ty==='s'){p.vy+=.15}else{p.r+=.35;p.vx*=.99}p.a*=p.ty==='m'?.975:.965;c.globalAlpha=Math.max(0,p.a);c.fillStyle=p.col;c.beginPath();c.arc(p.x,p.y,p.r,0,6.3);c.fill()});c.globalAlpha=1;parts=parts.filter(p=>p.a>.04);
+ c.restore();requestAnimationFrame(frame)}
+
+ui();frame();
+</script></body></html>
