@@ -1,26 +1,71 @@
-# THE HIDDEN RISK — Final Submission
+# THE HIDDEN RISK ✈️
+### Not Every Strike Is Equal
 
-## Run locally
+**An exploratory data analysis and interactive aviation safety dashboard built using FAA wildlife strike reports (2020–2025).**
 
-1. Extract this ZIP and open the **THE_HIDDEN_RISK_FINAL_FIXED** folder in VS Code.
-2. Open the terminal in this folder:
+🔗 **[Explore the Live Dashboard](https://the-hidden-risk.streamlit.app/)** | 📓 **[View the Jupyter Notebook](FAA_Dataset_Notebook.ipynb)**
 
-   ```powershell
-   pip install -r requirements.txt
-   python -m streamlit run app.py --server.port 8505
-   ```
+## Project Overview
 
-3. Open **http://localhost:8505**. This separate port avoids mixing it up with older versions.
+Wildlife strikes are a recurring challenge in aviation safety, but **a frequently reported species is not necessarily the species associated with the highest recorded damage rate**.
 
-Or on Windows, double-click `RUN_DASHBOARD.bat` in the project folder.
+This project explores an important question:
 
-## Final adjustments
+> How do wildlife species, animal size, flight phase, and the number of animals involved relate to reported aircraft damage?
 
-- The original **white airliner** illustration and the existing dashboard theme remain unchanged.
-- The species selector lists **at most 12 frequently recorded, compatible species** for the selected phase, animal size and single/multiple selection. These are actual FAA `SPECIES` values.
-- Heatmap clicks select an observed species for the clicked phase and size. Every heatmap cell with a compatible identified species has been tested. The one empty cell (Taxi × Large × Multiple) displays `N/A` instead of an inert button.
-- Ground mammals and reptiles are only selectable in ground flight phases.
-- All rates use exact reported damage counts divided by reported strike counts. The heatmap rate aggregates **all** species in a phase/size/strike group, while the simulator rate additionally filters to the **selected species**, so the two rates can differ.
-- Small samples (fewer than 10 matching reports) are marked in the simulator status.
-- Damage animations represent illustrative outcomes; the cleaned data do not establish damaged aircraft parts for each specific scenario.
-- No file-upload/download buttons are part of the dashboard.
+## Dataset
+
+- **Source:** [Federal Aviation Administration (FAA) — Wildlife Strike Database](https://www.faa.gov/airports/airport_safety/wildlife)
+- **Period:** 2020–2025
+- **Cleaned records:** 110,940 reported wildlife strikes
+- **Damaging reports:** 4,314 (3.89%)
+- **Cleaned dataset:** `FAA_Cleaned.csv`
+
+## Project Structure
+
+| File | Description |
+|---|---|
+| `FAA_Dataset_Notebook.ipynb` | Data exploration, cleaning, EDA, and insights |
+| `FAA_Cleaned.csv` | Cleaned dataset |
+| `app.py` | Main Streamlit dashboard |
+| `lab.py` | Simulation data preparation and scenario logic |
+| `simulator.html` | Interactive wildlife-strike simulation |
+| `style.css` | Dashboard styling |
+| `requirements.txt` | Required Python packages |
+
+## Key Findings
+
+| Category | Recorded Damage Rate |
+|---|---:|
+| Overall | 3.89% |
+| Small animals | 1.49% |
+| Large animals | 24.36% |
+| Mourning dove | 1.30% |
+| White-tailed deer | 73.76% |
+| Single-animal strikes | 3.58% |
+| Multiple-animal strikes | 7.20% |
+
+**Main Insight:** Strike frequency alone does not explain aircraft damage. Wildlife characteristics and incident circumstances reveal important differences in recorded damage rates.
+
+## Interactive Dashboard
+
+The Streamlit dashboard allows users to:
+
+- Filter records by year, animal size, and flight phase.
+- Explore summary statistics and damage-rate trends.
+- Compare wildlife species by frequency and recorded damage rate.
+- Analyze patterns across animal sizes and strike groups.
+- Select Explore an animated wildlife-strike simulation scenarios through an interactive damage-rate heatmap.
+- Key findings
+
+## Technologies Used
+
+**Python · Pandas · Streamlit · Plotly · JS/CSS/HTML · Jupyter Notebook**
+
+
+## Limitations
+
+- The analysis is based on reported wildlife strikes, not all flights.
+- Approximately 45% of reports had no recorded flight phase, and 20% had no recorded animal size.
+- Species damage rankings included only wildlife categories with at least 100 reports.
+- The findings show associations, not causation.
